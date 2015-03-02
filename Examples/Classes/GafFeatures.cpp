@@ -4,8 +4,16 @@
 
 #include <iostream>
 
+#if defined(__APPLE__) && defined(SEARCH_ALL_GAF_FILES)
+#include <dirent.h>
+#include <unistd.h>
+#endif // __APPLE__ && SEARCH_ALL_GAF_FILES
+
 #ifdef WIN32
 #include <windows.h>
+#ifdef SEARCH_ALL_GAF_FILES
+#include <codecvt>
+#endif // SEARCH_ALL_GAF_FILES
 
 double PCFreq = 0.0;
 __int64 CounterStart = 0;
@@ -46,20 +54,17 @@ double GetCounter()
 #endif
 
 
-cocos2d::Point centerScreenPosition(GAFAsset* ast, const cocos2d::Size& screenSize)
+cocos2d::Point centerScreenPosition(const cocos2d::Size& screenSize)
 {
-    const GAFHeader& headInfo = ast->getHeader();
-    
-    return cocos2d::Point(-headInfo.frameSize.getMinX() + (screenSize.width - headInfo.frameSize.size.width) / 2,
-                           headInfo.frameSize.getMinY() + (screenSize.height + headInfo.frameSize.size.height) / 2);
+    return cocos2d::Point(screenSize.width / 2, screenSize.height / 2);
 }
 
 GafFeatures::GafFeatures()
     :
-    m_asset(NULL),
-    m_objects(NULL),
-    m_currentSequence(0)
-    , m_loadingTimeLabel(NULL)
+    m_asset(nullptr),
+    m_objects(nullptr),
+    m_currentSequence(0),
+	m_loadingTimeLabel(nullptr)
 {
     m_touchlistener = cocos2d::EventListenerTouchAllAtOnce::create();
 
@@ -266,8 +271,30 @@ cocos2d::MenuItemImage* GafFeatures::addButton(const std::string &buttonName, co
 bool GafFeatures::init()
 {
     setupMenuItems();
-    gray(NULL);
+    gray(nullptr);
     
+    generateGafFilesList();
+    
+    m_anim_index = 0;
+    
+    addObjectsToScene();
+    
+    return true;
+}
+
+void GafFeatures::generateGafFilesList()
+{
+#ifdef SEARCH_ALL_GAF_FILES
+#if defined(WIN32)
+    std::wstring start_path = L"";
+#elif defined(__APPLE__)
+    char *dir = getcwd(NULL, 0);
+    std::string start_path = dir;
+    start_path.append("/../../.."); // Supress Appname.app/Content/Resources which is default directory
+    chdir(start_path.c_str()); // Mandatory action
+#endif // Platform
+    searchGafFilesInDirectory(start_path);
+#else // SEARCH_ALL_GAF_FILES
     m_files.push_back("cut_the_hope/cut_the_hope.gaf");
     m_files.push_back("biggreen/biggreen.gaf");
     m_files.push_back("bird_bezneba/bird_bezneba.gaf");
@@ -279,13 +306,93 @@ bool GafFeatures::init()
     m_files.push_back("myshopsgame4/myshopsgame4.gaf");
     m_files.push_back("peacock_feb3_natasha/peacock_feb3_natasha.gaf");
     m_files.push_back("tiger/tiger.gaf");
-    
-    m_anim_index = 0;
-    
-    addObjectsToScene();
-    
-    return true;
+#endif // SEARCH_ALL_GAF_FILES
 }
+
+#ifdef SEARCH_ALL_GAF_FILES
+#ifdef WIN32
+void GafFeatures::searchGafFilesInDirectory(std::string& path)
+{
+    std::wstring wpath = path;
+    std::wstring files = wpath + L"*.*";
+    const std::wstring gaf_extension = L".gaf";
+
+    WIN32_FIND_DATA wfd;
+    HANDLE search = FindFirstFileEx(files.c_str(), FindExInfoStandard, &wfd, FindExSearchNameMatch, NULL, 0);
+    bool ret = true;
+    if (search != INVALID_HANDLE_VALUE)
+    {
+        BOOL find = true;
+        while (find)
+        {
+            //. ..
+            if (wfd.cFileName[0] != '.')
+            {
+                std::wstring temp = wpath + wfd.cFileName;
+                
+                if (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                {
+                    temp += '/';
+                    searchGafFilesInDirectory(temp);
+                }
+                else if (temp.rfind(gaf_extension) == temp.length() - gaf_extension.length())
+                {
+                    const std::wstring resources_dir = L"Resources/";
+                    int pos = temp.rfind(resources_dir);
+                    std::wstring path_to_append = temp.substr(pos + resources_dir.length());
+
+                    typedef std::codecvt_utf8<wchar_t> convert_type;
+                    std::wstring_convert<convert_type, wchar_t> converter;
+
+                    std::string converted_path = converter.to_bytes(path_to_append);
+                    m_files.push_back(converted_path);
+                }
+            }
+            find = FindNextFile(search, &wfd);
+        }
+        if (path.empty())
+        {
+            FindClose(search);
+        }
+    }
+}
+#endif // WIN32
+
+#ifdef __APPLE__
+void GafFeatures::searchGafFilesInDirectory(std::string& path)
+{
+    const char* gaf_extension = ".gaf";
+
+    DIR* directory = opendir(path.c_str());
+    
+    if (directory)
+    {
+        struct dirent* hFile;
+        while ((hFile = readdir(directory)) != NULL)
+        {
+            if (hFile->d_name[0] == '.')
+            {
+                continue;
+            }
+            
+            std::string child_entry = path + "/";
+            child_entry.append(hFile->d_name);
+            
+            if (hFile->d_type == DT_DIR)
+            {
+                searchGafFilesInDirectory(child_entry);
+            }
+            else if(strstr(hFile->d_name, gaf_extension))
+            {
+                m_files.push_back(child_entry);
+            }
+        }
+        closedir(directory);
+    }
+    
+}
+#endif // __APPLE__
+#endif // SEARCH_ALL_GAF_FILES
 
 void GafFeatures::enableSequenceControllers( bool value )
 {
@@ -301,20 +408,20 @@ void GafFeatures::enableSequenceControllers( bool value )
 
 void GafFeatures::onTouchesBegan(const std::vector<cocos2d::Touch*>& touches, cocos2d::Event *unused_event)
 {
-    /*if (!m_objects || !m_objects->count())
+    if (!m_objects || !m_objects->count())
     {
         return;
     }
 
-    GAFAnimatedObject * node = (GAFAnimatedObject*)m_objects->getObjectAtIndex(0);
+    GAFObject * node = (GAFObject*)m_objects->getObjectAtIndex(0);
     cocos2d::Touch * pTouch = touches[0];
     cocos2d::Point pt = pTouch->getLocation();
-    node->setPosition(pt.x, pt.y);*/
+    node->setPosition(pt.x, pt.y);
 }
 
 void GafFeatures::nextSequence( cocos2d::Ref* )
 {
-    GAFAnimatedObject *object = (GAFAnimatedObject *)m_objects->getObjectAtIndex(0);
+    GAFObject *object = (GAFObject *)m_objects->getObjectAtIndex(0);
 
     m_currentSequence++;
 
@@ -331,7 +438,7 @@ void GafFeatures::nextSequence( cocos2d::Ref* )
 
 void GafFeatures::prevSequence( cocos2d::Ref* )
 {
-    GAFAnimatedObject *object = (GAFAnimatedObject *)m_objects->getObjectAtIndex(0);
+    GAFObject *object = (GAFObject *)m_objects->getObjectAtIndex(0);
 
     m_currentSequence--;
 
@@ -387,9 +494,9 @@ void GafFeatures::restart(cocos2d::Ref*)
         return;
     }
 
-    GAFAnimatedObject *object = (GAFAnimatedObject *)m_objects->getObjectAtIndex(0);
-    object->stop();
-    object->start();
+    GAFObject *object = (GAFObject *)m_objects->getObjectAtIndex(0);
+    //object->stop(true);
+    //object->start(true);
 }
 
 void GafFeatures::playpause(cocos2d::Ref*)
@@ -399,15 +506,15 @@ void GafFeatures::playpause(cocos2d::Ref*)
         return;
     }
 
-    GAFAnimatedObject *object = (GAFAnimatedObject *)m_objects->getObjectAtIndex(0);
+    GAFObject *object = (GAFObject *)m_objects->getObjectAtIndex(0);
 
-    if (object->isAnimationRunning())
+    if (object->getIsAnimationRunning())
     {
-        object->pauseAnimation();
+        object->setAnimationRunning(false, true);
     }
     else
     {
-        object->resumeAnimation();
+        object->setAnimationRunning(true, true);
     }
 }
 
@@ -418,8 +525,8 @@ int GafFeatures::maxFrameNumber()
         return -1;
     }
 
-    GAFAnimatedObject *object = (GAFAnimatedObject *)m_objects->getObjectAtIndex(0);
-    return object->totalFrameCount();	
+    GAFObject *object = (GAFObject *)m_objects->getObjectAtIndex(0);
+    return object->getTotalFrameCount();
 }
 
 void GafFeatures::setFrameNumber(int aFrameNumber)
@@ -429,7 +536,7 @@ void GafFeatures::setFrameNumber(int aFrameNumber)
         return;
     }
 
-    GAFAnimatedObject *object = (GAFAnimatedObject *)m_objects->getObjectAtIndex(0);
+    GAFObject *object = (GAFObject *)m_objects->getObjectAtIndex(0);
     object->setFrame(aFrameNumber);	
 }
 
@@ -440,8 +547,8 @@ int GafFeatures::frameNumber()
         return -1;
     }
 
-    GAFAnimatedObject *object = (GAFAnimatedObject *)m_objects->getObjectAtIndex(0);
-    return object->currentFrameIndex();
+    GAFObject *object = (GAFObject *)m_objects->getObjectAtIndex(0);
+    return object->getCurrentFrameIndex();
 }
 
 void GafFeatures::toggleReverse(cocos2d::Ref*)
@@ -450,7 +557,7 @@ void GafFeatures::toggleReverse(cocos2d::Ref*)
     {
         return;
     }
-    GAFAnimatedObject *obj = (GAFAnimatedObject *)m_objects->getLastObject();
+    GAFObject *obj = (GAFObject *)m_objects->getLastObject();
     obj->setReversed(!obj->isReversed());
 }
 
@@ -481,7 +588,7 @@ void GafFeatures::removeFromScene(int aCount)
 
     for (int i = 0; i < aCount; ++i)
     {
-        GAFAnimatedObject *obj = (GAFAnimatedObject *) m_objects->getLastObject();
+        GAFObject *obj = (GAFObject *) m_objects->getLastObject();
         removeChild(obj);
         m_objects->removeLastObject();
     }
@@ -489,10 +596,12 @@ void GafFeatures::removeFromScene(int aCount)
 
 void GafFeatures::addObjectsToScene()
 {
+    using namespace std::placeholders;
+    
     if (!m_asset)
     {
         StartCounter();
-        m_asset = GAFAsset::create(m_files[m_anim_index], this);
+        m_asset = GAFAsset::create(m_files[m_anim_index], nullptr);
         double loadingTime = GetCounter();
 
         cocos2d::log("Loading time [%f]\n", loadingTime);
@@ -505,8 +614,8 @@ void GafFeatures::addObjectsToScene()
         
         ss.str("");
         
-        ss << "VRAM: ";
-        ss << m_asset->getTextureAtlas()->getMemoryConsumptionStat();
+		ss << "VRAM: ";
+        ss << m_asset->getTextureManager()->getMemoryConsumptionStat();
         ss << " bytes";
         
         m_vramStat->setString(ss.str());
@@ -524,13 +633,15 @@ void GafFeatures::addObjectsToScene()
 
     if (m_asset)
     {
-        GAFAnimatedObject *object = m_asset->createObject();
+        GAFObject *object = m_asset->createObject();
         
         object->setLocalZOrder(0);
         addChild(object);
         
         float scaleFactor = cocos2d::Director::getInstance()->getContentScaleFactor();
-        object->setPosition(centerScreenPosition(m_asset, size / scaleFactor));
+        object->setAnchorPoint(cocos2d::Vec2(0.5, 0.5));
+        object->setPosition(centerScreenPosition(size / scaleFactor));
+        object->setLocator(true);
         
         m_objects->addObject(object);
         
@@ -545,7 +656,7 @@ void GafFeatures::addObjectsToScene()
 #endif
         m_musicEffects.clear();
         
-        const AnimationSequences_t& secDictionary = m_asset->getAnimationSequences();
+        const AnimationSequences_t& secDictionary = m_asset->getRootTimeline()->getAnimationSequences(); // TODO: only root timeline (temporary workaround)
         if (!secDictionary.empty())
         {
             for (AnimationSequences_t::const_iterator i = secDictionary.begin(), e = secDictionary.end(); i != e; ++i)
@@ -571,21 +682,21 @@ void GafFeatures::addObjectsToScene()
         
         // will work only if animation has a sequence
         object->playSequence("walk", true);
-        object->setLooped(true);
+        object->setLooped(true, true);
         object->start();
         
-        object->setSequenceDelegate(this);
-        object->setFramePlayedDelegate(this);
+        object->setSequenceDelegate(std::bind(&GafFeatures::onFinishSequence, this, _1, _2));
+        object->setFramePlayedDelegate(std::bind(&GafFeatures::onFramePlayed, this, _1, _2));
         
     }
 }
 
-void GafFeatures::onFinishSequence( GAFAnimatedObject * object, const std::string& sequenceName )
+void GafFeatures::onFinishSequence( GAFObject * object, const std::string& sequenceName )
 {
     //! This function will be triggered once a sequence completed
 }
 
-void GafFeatures::onFramePlayed(GAFAnimatedObject *object, int frame)
+void GafFeatures::onFramePlayed(GAFObject *object, uint32_t frame)
 {
     MusicEffects_t::const_iterator it = m_musicEffects.find(frame);
     
@@ -598,7 +709,7 @@ void GafFeatures::onFramePlayed(GAFAnimatedObject *object, int frame)
 }
 
 //! path parameter could be changed
-void GafFeatures::onTexturePreLoad(std::string& path)
+void GafFeatures::onTexturePreLoad(std::string* path)
 {
-    CCLOG("Loading texture %s", path.c_str());
+    CCLOG("Loading texture %s", path->c_str());
 }

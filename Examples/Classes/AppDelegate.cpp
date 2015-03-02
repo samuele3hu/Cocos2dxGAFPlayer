@@ -1,7 +1,5 @@
 #include "AppDelegate.h"
 
-#include "cocos2d.h"
-
 #include "GafFeatures.h"
 
 #include <vector>
@@ -11,6 +9,7 @@
 
 static int const kGlobalFPS = 60;
 USING_NS_CC;
+USING_NS_GAF;
 
 AppDelegate::AppDelegate()
 {
@@ -19,6 +18,13 @@ AppDelegate::AppDelegate()
 
 AppDelegate::~AppDelegate()
 {
+}
+
+void AppDelegate::initGLContextAttrs()
+{
+    GLContextAttrs glContextAttrs = {8, 8, 8, 8, 24, 8};
+
+    GLView::setGLContextAttrs(glContextAttrs);
 }
 
 bool AppDelegate::applicationDidFinishLaunching()
@@ -80,8 +86,7 @@ bool AppDelegate::applicationDidFinishLaunching()
 }
 void AppDelegate::applicationDidEnterBackground()
 {
-    cocos2d::Director::getInstance()->stopAnimation();
-    GAFShaderManager::handleEnterBackground();
+    Director::getInstance()->stopAnimation();
 }
 
 void AppDelegate::applicationWillEnterForeground()
@@ -90,7 +95,7 @@ void AppDelegate::applicationWillEnterForeground()
 }
 
 #ifdef _WIN32
-
+#if (CC_TARGET_PLATFORM != CC_PLATFORM_WP8) && (CC_TARGET_PLATFORM != CC_PLATFORM_WINRT)
 int WINAPI WinMain(__in HINSTANCE hInstance,
     __in_opt HINSTANCE hPrevInstance,
     __in LPSTR lpCmdLine,
@@ -101,4 +106,5 @@ int WINAPI WinMain(__in HINSTANCE hInstance,
 
     return cocos2d::Application::getInstance()->run();
 }
+#endif
 #endif

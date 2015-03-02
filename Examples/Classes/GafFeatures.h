@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __GafFeatures_SCENE_H__
+#define __GafFeatures_SCENE_H__
 
 #include "cocos2d.h"
 #include "GAF.h"
@@ -7,9 +8,17 @@
 #include <vector>
 #include <unordered_map>
 
-class GAFAnimatedObject;
 
-class GafFeatures : public cocos2d::Layer, public GAFSequenceDelegate, public GAFTextureLoadDelegate, public GAFFramePlayedDelegate
+NS_GAF_BEGIN
+class GAFObject;
+class GAFAsset;
+NS_GAF_END
+
+USING_NS_GAF;
+
+//#define SEARCH_ALL_GAF_FILES
+
+class GafFeatures : public cocos2d::Layer
 {
 private:
 
@@ -39,6 +48,16 @@ private:
     
     void setupMenuItems();
     cocos2d::MenuItemImage* addButton(const std::string& buttonName, const std::string& buttonPressedName, const cocos2d::Point& pos, const cocos2d::ccMenuCallback& clb);
+
+    void generateGafFilesList();
+#ifdef SEARCH_ALL_GAF_FILES
+#if defined(WIN32)
+    void searchGafFilesInDirectory(std::wstring& path);
+#elif defined(__APPLE__)
+    void searchGafFilesInDirectory(std::string& path);
+#endif
+#endif // SEARCH_ALL_GAF_FILES
+
 public:
     GafFeatures();
     ~GafFeatures();
@@ -74,9 +93,11 @@ public:
     void nextSequence(cocos2d::Ref*);
     void prevSequence(cocos2d::Ref*);
 
-    virtual void onFinishSequence(GAFAnimatedObject * object, const std::string& sequenceName);
+    virtual void onFinishSequence(GAFObject* object, const std::string& sequenceName);
 
-    virtual void onTexturePreLoad(std::string& path);
+    virtual void onTexturePreLoad(std::string* path);
     
-    virtual void onFramePlayed(GAFAnimatedObject * object, int frame) override;
+    virtual void onFramePlayed(GAFObject* object, uint32_t frame);
 };
+
+#endif // __GafFeatures_SCENE_H__

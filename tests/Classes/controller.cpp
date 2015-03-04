@@ -33,10 +33,12 @@ Controller g_aTestNames[] = {
     //     violators will be prosecuted
     //
     { "Filters", []() { return new FiltersTestScene(); } },
+    { "General: Bundles", []() { return new BundlesTestScene(); } },
     { "General: Flip", []() { return new FlipTestScene(); } },
     { "General: Multiple timelines", []() { return new MultipleTimelineTestScene(); } },
     { "General: Playback", []() { return new FramePlaybackTestScene(); } },
     { "Masks: Timelines", []() { return new MaskTimelineTestScene(); } },
+    { "User Interface", []() { return new UITestScene(); } },
 };
 
 static int g_testCount = sizeof(g_aTestNames) / sizeof(g_aTestNames[0]);

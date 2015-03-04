@@ -18,6 +18,8 @@
 
 NS_GAF_BEGIN
 
+static const AnimationSequences_t s_emptySequences = AnimationSequences_t();
+
 cocos2d::AffineTransform GAFObject::GAF_CGAffineTransformCocosFormatFromFlashFormat(cocos2d::AffineTransform aTransform)
 {
     cocos2d::AffineTransform transform = aTransform;
@@ -633,6 +635,13 @@ bool GAFObject::hasSequences() const
     return !m_timeline->getAnimationSequences().empty();
 }
 
+const AnimationSequences_t& GAFObject::getSequences() const
+{
+    if (m_timeline)
+        return m_timeline->getAnimationSequences();
+    return s_emptySequences;
+}
+
 static cocos2d::Rect GAFCCRectUnion(const cocos2d::Rect& src1, const cocos2d::Rect& src2)
 {
     float thisLeftX = src1.origin.x;
@@ -921,6 +930,25 @@ void GAFObject::realizeFrame(cocos2d::Node* out, uint32_t frameIndex)
         {
             GAFTextField *tf = static_cast<GAFTextField*>(subObject);
             rearrangeSubobject(out, subObject, state->zIndex);
+
+            cocos2d::AffineTransform stateTransform = state->affineTransform;
+            float csf = m_timeline->usedAtlasScale();
+            stateTransform.tx *= csf;
+            stateTransform.ty *= csf;
+            cocos2d::AffineTransform t = GAF_CGAffineTransformCocosFormatFromFlashFormat(state->affineTransform);
+
+            if (isFlippedX() || isFlippedY())
+            {
+                float flipMulX = isFlippedX() ? -1 : 1;
+                float flipOffsetX = isFlippedX() ? getContentSize().width - m_asset->getHeader().frameSize.getMinX() : 0;
+                float flipMulY = isFlippedY() ? -1 : 1;
+                float flipOffsetY = isFlippedY() ? -getContentSize().height + m_asset->getHeader().frameSize.getMinY() : 0;
+
+                cocos2d::AffineTransform flipCenterTransform = cocos2d::AffineTransformMake(flipMulX, 0, 0, flipMulY, flipOffsetX, flipOffsetY);
+                t = AffineTransformConcat(t, flipCenterTransform);
+            }
+
+            subObject->setExternalTransform(t);
         }
 
         if (state->isVisible())

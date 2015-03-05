@@ -31,8 +31,8 @@ include_directories(
   /usr/local/include/
   /System/Library/Frameworks
   ${GAF_ROOT}/Sources
-  ${COCOS_ROOT}/../external/lua/tolua
-  ${COCOS_ROOT}/../external/lua/lua
+  ${GAF_ROOT}/external/lua/tolua
+  ${GAF_ROOT}/external/lua/lua
   ${COCOS_ROOT}/scripting/lua-bindings/manual
   ${COCOS_ROOT}
   ${COCOS_ROOT}/2d

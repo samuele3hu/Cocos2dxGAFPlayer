@@ -8,7 +8,7 @@
 -- get mesh vertex attribute count
 -- @function [parent=#Mesh] getMeshVertexAttribCount 
 -- @param self
--- @return int#int ret (return value: int)
+-- @return long#long ret (return value: long)
         
 --------------------------------
 -- @overload self, cc.Texture2D         

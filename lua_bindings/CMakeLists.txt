@@ -68,4 +68,4 @@ install(DIRECTORY ${GAF_ROOT}/Sources/ DESTINATION "include/GAFPlayerLua"
   FILES_MATCHING PATTERN "*.h") 
 
 install(DIRECTORY bindings/ DESTINATION "include/GAFPlayerLua"
-  FILES_MATCHING PATTERN "*.h") 
+  FILES_MATCHING PATTERN "*.hpp") 

@@ -136,7 +136,7 @@
       <PrecompiledHeaderFile>GAFPrecompiled.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
-      <AdditionalIncludeDirectories>$(GAF_SOURCES_ROOT);$(CCX_ROOT)/cocos/platform/win32;$(CCX_ROOT_2)/cocos/platform/win32;$(CCX_ROOT_2)/cocos;$(CCX_ROOT)/cocos/;$(CCX_ROOT_2)/external/win32-specific/gles/include/OGLES/;$(CCX_ROOT)/external/win32-specific/gles/include/OGLES/;$(CCX_ROOT_2)/external/glfw3/include/win32/;$(CCX_ROOT)/external/glfw3/include/win32/;$(CCX_ROOT_2)/external/win32-specific/zlib/include/;$(CCX_ROOT)/external/win32-specific/zlib/include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(GAF_SOURCES_ROOT);$(GAF_SOURCES_ROOT)/../cocos;$(GAF_SOURCES_ROOT)/../GL/;$(GAF_SOURCES_ROOT)/../glfw/include;$(GAF_SOURCES_ROOT)/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,13 +147,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>MinSpace</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>GAFPrecompiled.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(GAF_SOURCES_ROOT);$(CCX_ROOT_2)/cocos;$(CCX_ROOT)/cocos/;$(CCX_ROOT_2)/external/win32-specific/gles/include/OGLES/;$(CCX_ROOT)/external/win32-specific/gles/include/OGLES/;$(CCX_ROOT_2)/external/glfw3/include/win32/;$(CCX_ROOT)/external/glfw3/include/win32/;$(CCX_ROOT_2)/external/win32-specific/zlib/include/;$(CCX_ROOT)/external/win32-specific/zlib/include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(GAF_SOURCES_ROOT);$(GAF_SOURCES_ROOT)/../cocos;$(GAF_SOURCES_ROOT)/../GL/;$(GAF_SOURCES_ROOT)/../glfw/include;$(GAF_SOURCES_ROOT)/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
